@@ -11,22 +11,29 @@
 // set it to the LOG_INTERVAL to write each time (safest)
 // set it to 10*LOG_INTERVAL to write all data every 10 datareads, you could lose up to 
 // the last 10 reads if power is lost but it uses less power and is much faster!
-#define SYNC_INTERVAL 1000 // mills between calls to flush() - to write data to the card
+#define SYNC_INTERVAL 10000 // mills between calls to flush() - to write data to the card
+
+// The analog pins that connect to the sensors
+#define firstSensorPin 0           // analog 0
+#define secondSensorPin 1                // analog 1
+
+#define WHAT_ANALOG_REFERENCE DEFAULT
+//Note. Choices.
+//Configures the reference voltage used for analog input (i.e. the value used as the top of the input range). The options are:
+//DEFAULT: the default analog reference of 5 volts (on 5V Arduino boards) or 3.3 volts (on 3.3V Arduino boards)
+//INTERNAL: an built-in reference, equal to 1.1 volts on the ATmega168 or ATmega328 and 2.56 volts on the ATmega8 (not available on the Arduino Mega)
+//INTERNAL1V1: a built-in 1.1V reference (Arduino Mega only)
+//INTERNAL2V56: a built-in 2.56V reference (Arduino Mega only)
+//EXTERNAL: the voltage applied to the AREF pin (0 to 5V only) is used as the reference.
+
+/////////////////////////////////////////////////
+
 uint32_t syncTime = 0; // time of last sync()
 
 #define ECHO_TO_SERIAL   1 // echo data to serial port
 #define WAIT_TO_START    0 // Wait for serial input in setup()
 
-// the digital pins that connect to the LEDs
-#define redLEDpin 2
-#define greenLEDpin 3
-
-// The analog pins that connect to the sensors
-#define photocellPin 0           // analog 0
-#define tempPin 1                // analog 1
 #define BANDGAPREF 14            // special indicator that we want to measure the bandgap
-
-#define aref_voltage 3.3         // we tie 3.3V to ARef and measure it with a multimeter!
 #define bandgap_voltage 1.1      // this is not super guaranteed but its not -too- off
 
 RTC_DS1307 RTC; // define the Real Time Clock object
@@ -39,11 +46,8 @@ File logfile;
 
 void error(char *str)
 {
-  Serial.print("error: ");
+  Serial.print("Stopping! error: ");
   Serial.println(str);
-  
-  // red LED indicates error
-  digitalWrite(redLEDpin, HIGH);
 
   while(1);
 }
@@ -52,10 +56,6 @@ void setup(void)
 {
   Serial.begin(9600);
   Serial.println();
-  
-  // use debugging LEDs
-  pinMode(redLEDpin, OUTPUT);
-  pinMode(greenLEDpin, OUTPUT);
   
 #if WAIT_TO_START
   Serial.println("Type any character to start");
@@ -103,13 +103,13 @@ void setup(void)
   }
   
 
-  logfile.println("millis,stamp,datetime,light,temp,vcc");    
+  logfile.println("millis,stamp,datetime,firstSensor,secondSensor,vcc");    
 #if ECHO_TO_SERIAL
-  Serial.println("millis,stamp,datetime,light,temp,vcc");
+  Serial.println("millis,stamp,datetime,firstSensor,secondSensor,vcc");
 #endif //ECHO_TO_SERIAL
  
   // If you want to set the aref to something other than 5v
-  analogReference(EXTERNAL);
+  analogReference(WHAT_ANALOG_REFERENCE);
 }
 
 void loop(void)
@@ -119,7 +119,6 @@ void loop(void)
   // delay for the amount of time we want between readings
   delay((LOG_INTERVAL -1) - (millis() % LOG_INTERVAL));
   
-  digitalWrite(greenLEDpin, HIGH);
   
   // log milliseconds since starting
   uint32_t m = millis();
@@ -166,28 +165,30 @@ void loop(void)
   Serial.print('"');
 #endif //ECHO_TO_SERIAL
 
-  analogRead(photocellPin);
+  analogRead(firstSensorPin);
   delay(10); 
-  int photocellReading = analogRead(photocellPin);  
+  int firstSensorReading = analogRead(firstSensorPin);  
   
-  analogRead(tempPin); 
+  analogRead(secondSensorPin); 
   delay(10);
-  int tempReading = analogRead(tempPin);    
+  int secondSensorReading = analogRead(secondSensorPin);    
   
   // converting that reading to voltage, for 3.3v arduino use 3.3, for 5.0, use 5.0
-  float voltage = tempReading * aref_voltage / 1024;  
-  float temperatureC = (voltage - 0.5) * 100 ;
-  float temperatureF = (temperatureC * 9 / 5) + 32;
+  // float voltage = secondSensorReading * aref_voltage / 1024;  
+  // float temperatureC = (voltage - 0.5) * 100 ;
+  // float temperatureF = (temperatureC * 9 / 5) + 32;
   
   logfile.print(", ");    
-  logfile.print(photocellReading);
-  logfile.print(", ");    
-  logfile.print(temperatureF);
+  logfile.print(firstSensorReading);
+  logfile.print(", ");
+  logfile.print(secondSensorReading);
+  //logfile.print(temperatureF);
 #if ECHO_TO_SERIAL
   Serial.print(", ");   
-  Serial.print(photocellReading);
-  Serial.print(", ");    
-  Serial.print(temperatureF);
+  Serial.print(firstSensorReading);
+  Serial.print(", ");  
+  Serial.print(secondSensorReading);
+  //Serial.print(temperatureF);
 #endif //ECHO_TO_SERIAL
 
   // Log the estimated 'VCC' voltage by measuring the internal 1.1v ref
@@ -208,17 +209,16 @@ void loop(void)
   Serial.println();
 #endif // ECHO_TO_SERIAL
 
-  digitalWrite(greenLEDpin, LOW);
 
   // Now we write data to disk! Don't sync too often - requires 2048 bytes of I/O to SD card
   // which uses a bunch of power and takes time
   if ((millis() - syncTime) < SYNC_INTERVAL) return;
   syncTime = millis();
   
-  // blink LED to show we are syncing data to the card & updating FAT!
-  digitalWrite(redLEDpin, HIGH);
+  //  we are syncing data to the card & updating FAT!
+
   logfile.flush();
-  digitalWrite(redLEDpin, LOW);
+
   
 }
 
