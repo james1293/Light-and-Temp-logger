@@ -76,13 +76,25 @@ void setup(void)
   
   // create a new file
   char filename[] = "LOGGER00.CSV";
-  for (uint8_t i = 0; i < 100; i++) {
+  
+  // NOTICE!! THIS FOR LOOP REALLY ONLY CREATES 1 FILE.
+  
+  for (uint8_t i = 0; i < 100; i++) { //uint8_t is a fancy integer. Unsigned, 8 bit, not sure what the "t" is.
+    // So this was above my head for a while, but I just now sat down and looked at it.
+    // Really, it's taking the ASCII code for 0 (something like 48) and adding i / 10. But i/10 will be
+    // truncated (because... that's how C/C++ works). So for the number 5,
+    // i/10 = 0, 0 + '0' = '0'.
+    // i%10 = 5, 5 + '0' = '5'.
+    // And, for 37 (arbitrary other number),
+    // i/10 = 3, 3 + '0' = '3'.
+    // i%10 = 7, 7 + '0' = '7'.
     filename[6] = i/10 + '0';
     filename[7] = i%10 + '0';
     if (! SD.exists(filename)) {
       // only open a new file if it doesn't exist
       logfile = SD.open(filename, FILE_WRITE); 
-      break;  // leave the loop!
+      break;  // leave the loop! 
+      // So -- only creating ONE FILE!
     }
   }
   
