@@ -14,8 +14,8 @@
 #define SYNC_INTERVAL 10000 // mills between calls to flush() - to write data to the card
 
 // The analog pins that connect to the sensors
-#define firstSensorPin 0           // analog 0
-#define secondSensorPin 1                // analog 1
+#define tempSensorPin 0           // analog 0
+#define pHSensorPin 1                // analog 1
 
 #define WHAT_ANALOG_REFERENCE DEFAULT
 //Note. Choices.
@@ -43,6 +43,8 @@ const int chipSelect = 10;
 
 // the logging file
 File logfile;
+
+
 
 void error(char *str)
 {
@@ -115,9 +117,9 @@ void setup(void)
   }
   
 
-  logfile.println("millis,stamp,datetime,firstSensor,secondSensor,vcc");    
+  logfile.println("datetime,A0Raw,A1Raw,vcc,Temp,pH,AnalogRef");    
 #if ECHO_TO_SERIAL
-  Serial.println("millis,stamp,datetime,firstSensor,secondSensor,vcc");
+  Serial.println("datetime,A0Raw,A1Raw,vcc,Temp,pH,AnalogRef");
 #endif //ECHO_TO_SERIAL
  
   // If you want to set the aref to something other than 5v
@@ -134,18 +136,18 @@ void loop(void)
   
   // log milliseconds since starting
   uint32_t m = millis();
-  logfile.print(m);           // milliseconds since start
-  logfile.print(", ");    
+//  logfile.print(m);           // milliseconds since start
+//  logfile.print(", ");    
 #if ECHO_TO_SERIAL
-  Serial.print(m);         // milliseconds since start
-  Serial.print(", ");  
+//  Serial.print(m);         // milliseconds since start
+//  Serial.print(", ");  
 #endif
 
   // fetch the time
   now = RTC.now();
   // log time
-  logfile.print(now.unixtime()); // seconds since 1/1/1970
-  logfile.print(", ");
+  //logfile.print(now.unixtime()); // seconds since 1/1/1970
+  //logfile.print(", ");
   logfile.print('"');
   logfile.print(now.year(), DEC);
   logfile.print("/");
@@ -160,8 +162,8 @@ void loop(void)
   logfile.print(now.second(), DEC);
   logfile.print('"');
 #if ECHO_TO_SERIAL
-  Serial.print(now.unixtime()); // seconds since 1/1/1970
-  Serial.print(", ");
+  //Serial.print(now.unixtime()); // seconds since 1/1/1970
+  //Serial.print(", ");
   Serial.print('"');
   Serial.print(now.year(), DEC);
   Serial.print("/");
@@ -177,29 +179,29 @@ void loop(void)
   Serial.print('"');
 #endif //ECHO_TO_SERIAL
 
-  analogRead(firstSensorPin);
+  analogRead(tempSensorPin);
   delay(10); 
-  int firstSensorReading = analogRead(firstSensorPin);  
+  int tempSensorReading = analogRead(tempSensorPin);  
   
-  analogRead(secondSensorPin); 
+  analogRead(pHSensorPin); 
   delay(10);
-  int secondSensorReading = analogRead(secondSensorPin);    
+  int pHSensorReading = analogRead(pHSensorPin);    
   
   // converting that reading to voltage, for 3.3v arduino use 3.3, for 5.0, use 5.0
-  // float voltage = secondSensorReading * aref_voltage / 1024;  
+  // float voltage = pHSensorReading * aref_voltage / 1024;  
   // float temperatureC = (voltage - 0.5) * 100 ;
   // float temperatureF = (temperatureC * 9 / 5) + 32;
   
   logfile.print(", ");    
-  logfile.print(firstSensorReading);
+  logfile.print(tempSensorReading);
   logfile.print(", ");
-  logfile.print(secondSensorReading);
+  logfile.print(pHSensorReading);
   //logfile.print(temperatureF);
 #if ECHO_TO_SERIAL
   Serial.print(", ");   
-  Serial.print(firstSensorReading);
+  Serial.print(tempSensorReading);
   Serial.print(", ");  
-  Serial.print(secondSensorReading);
+  Serial.print(pHSensorReading);
   //Serial.print(temperatureF);
 #endif //ECHO_TO_SERIAL
 
@@ -215,6 +217,40 @@ void loop(void)
   Serial.print(", ");   
   Serial.print(supplyvoltage);
 #endif // ECHO_TO_SERIAL
+
+
+//math here
+  float voltageOftempReading = tempSensorReading /  204.6;
+  float actualTemp = voltageOftempReading*0.101*100.0;  
+  
+  float voltageOfpHReading = pHSensorReading /  204.6;
+  float actualpH = (4.6083-voltageOfpHReading)/.3;
+
+  logfile.print(", ");
+  logfile.print(actualTemp);
+  
+  logfile.print(", ");
+  logfile.print(actualpH);
+
+  logfile.print(", ");
+  logfile.print(WHAT_ANALOG_REFERENCE);
+  
+#if ECHO_TO_SERIAL
+  Serial.print(", ");   
+  Serial.print(actualTemp);
+
+  Serial.print(", ");   
+  Serial.print(actualpH);
+
+  Serial.print(", ");   
+  Serial.print(WHAT_ANALOG_REFERENCE);
+
+#endif // ECHO_TO_SERIAL
+
+
+
+
+
 
   logfile.println();
 #if ECHO_TO_SERIAL
