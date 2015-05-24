@@ -4,14 +4,17 @@
 
 // A simple data logger for the Arduino analog pins
 
+//MAKE SURE THAT SYNC_INTERVAL > LOG_INTERVAL
+
+
 // how many milliseconds between grabbing data and logging it. 1000 ms is once a second
-#define LOG_INTERVAL  1000 // mills between entries (reduce to take more/faster data)
+#define LOG_INTERVAL  10000 // mills between entries (reduce to take more/faster data)
 
 // how many milliseconds before writing the logged data permanently to disk
 // set it to the LOG_INTERVAL to write each time (safest)
 // set it to 10*LOG_INTERVAL to write all data every 10 datareads, you could lose up to 
 // the last 10 reads if power is lost but it uses less power and is much faster!
-#define SYNC_INTERVAL 10000 // mills between calls to flush() - to write data to the card
+#define SYNC_INTERVAL 100000 // mills between calls to flush() - to write data to the card
 
 // The analog pins that connect to the sensors
 #define tempSensorPin 0           // analog 0
@@ -189,6 +192,10 @@ void loop(void)
   Serial.print('"');
 #endif //ECHO_TO_SERIAL
 
+
+  //jaime: read, then wait just 1/100 sec, then actually read
+  //i thnk the idea is it will "clear the junk reading" before taking the real reading
+  // like flushin out the sensor ... ? 
   analogRead(tempSensorPin);
   delay(10); 
   int tempSensorReading = analogRead(tempSensorPin);  
