@@ -17,8 +17,9 @@
 #define tempSensorPin 0           // analog 0
 #define pHSensorPin 1                // analog 1
 
+//Added by jaime
 #define WHAT_ANALOG_REFERENCE DEFAULT
-//Note. Choices.
+//Note on the Choices:
 //Configures the reference voltage used for analog input (i.e. the value used as the top of the input range). The options are:
 //DEFAULT: the default analog reference of 5 volts (on 5V Arduino boards) or 3.3 volts (on 3.3V Arduino boards)
 //INTERNAL: an built-in reference, equal to 1.1 volts on the ATmega168 or ATmega328 and 2.56 volts on the ATmega8 (not available on the Arduino Mega)
@@ -28,11 +29,20 @@
 
 /////////////////////////////////////////////////
 
-uint32_t syncTime = 0; // time of last sync()
+uint32_t syncTime = 0; // time of last sync() (prob don't change this)
 
 #define ECHO_TO_SERIAL   1 // echo data to serial port
-#define WAIT_TO_START    0 // Wait for serial input in setup()
+//(if you make this zero, it will only write to card instead of also Serial.print ... but it's ok to
+// leave it as 1 all the time, even without a computer plugged in.)
 
+#define WAIT_TO_START    0 // Wait for serial input in setup()
+// IMO should leave this as zero all the time. Why would you want to freeze the program while waiting for
+// a serial connection?
+
+
+//Jaime says: I think these two lines have to do with the Arduino trying to measure its own supply voltage.
+// the idea is that you can compensate for the effect on your readings that comes from
+// fluctuations in the supply voltage. Probably refer to Adafruit on how exactly to do that.
 #define BANDGAPREF 14            // special indicator that we want to measure the bandgap
 #define bandgap_voltage 1.1      // this is not super guaranteed but its not -too- off
 
@@ -51,7 +61,7 @@ void error(char *str)
   Serial.print("Stopping! error: ");
   Serial.println(str);
 
-  while(1);
+  while(1); // jaime: This is a stupid way (IMO) to freeze the program upon an error. 
 }
 
 void setup(void)
@@ -61,7 +71,7 @@ void setup(void)
   
 #if WAIT_TO_START
   Serial.println("Type any character to start");
-  while (!Serial.available());
+  while (!Serial.available()); // Jaime: Freeze til serial connects
 #endif //WAIT_TO_START
 
   // initialize the SD card
@@ -79,12 +89,12 @@ void setup(void)
   // create a new file
   char filename[] = "LOGGER00.CSV";
   
-  // NOTICE!! THIS FOR LOOP REALLY ONLY CREATES 1 FILE.
+  // jaime: NOTICE!! THIS FOR LOOP REALLY ONLY CREATES 1 FILE.
   
   for (uint8_t i = 0; i < 100; i++) { //uint8_t is a fancy integer. Unsigned, 8 bit, not sure what the "t" is.
     // So this was above my head for a while, but I just now sat down and looked at it.
-    // Really, it's taking the ASCII code for 0 (something like 48) and adding i / 10. But i/10 will be
-    // truncated (because... that's how C/C++ works). So for the number 5,
+    // Really, it's taking the ASCII code for '0' (something like 48) and adding i / 10. But i/10 will be
+    // truncated (because... that's how C/C++ works). So for i=5,
     // i/10 = 0, 0 + '0' = '0'.
     // i%10 = 5, 5 + '0' = '5'.
     // And, for 37 (arbitrary other number),
